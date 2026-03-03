@@ -3,3 +3,4 @@ flask-socketio==5.6.1
 flask-cors==6.0.2
 redis==7.2.1
 gunicorn
+gevent>=24.10.1
