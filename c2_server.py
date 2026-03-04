@@ -474,5 +474,5 @@ def redis_listener():
 if __name__ == '__main__':
     logger.info(f"Starting Baohuo C2 server on port {HTTP_PORT}")
     if __name__ == '__main__':
-    logger.info(f"Starting Baohuo C2 server on port {HTTP_PORT}")
-    socketio.run(app, host='0.0.0.0', port=HTTP_PORT, debug=False)
+	    logger.info(f"Starting Baohuo C2 server on port {HTTP_PORT}")
+	    socketio.run(app, host='0.0.0.0', port=HTTP_PORT, debug=False)
